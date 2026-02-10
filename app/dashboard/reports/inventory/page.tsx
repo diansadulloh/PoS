@@ -83,6 +83,53 @@ export default function InventoryReportPage() {
         setProducts(productsRes.data || [])
         setCategories(categoriesRes.data || [])
         setTransactions(transactionsRes.data || [])
+
+        // Subscribe to inventory changes for real-time updates
+        const subscription = supabase
+          .channel(`inventory:${businessData.id}`)
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'inventory',
+              filter: `business_id=eq.${businessData.id}`,
+            },
+            () => {
+              // Refetch products and transactions when inventory changes
+              const refetchData = async () => {
+                const [updatedProducts, updatedTransactions] = await Promise.all([
+                  supabase
+                    .from('products')
+                    .select(`
+                      *,
+                      inventory(quantity_on_hand, reorder_level, quantity_reserved, last_stock_check)
+                    `)
+                    .eq('business_id', businessData.id)
+                    .order('name'),
+                  supabase
+                    .from('inventory_transactions')
+                    .select(`
+                      *,
+                      products(name, sku)
+                    `)
+                    .eq('business_id', businessData.id)
+                    .order('created_at', { ascending: false })
+                    .limit(100),
+                ])
+                setProducts(updatedProducts.data || [])
+                setTransactions(updatedTransactions.data || [])
+              }
+              refetchData()
+            }
+          )
+          .subscribe()
+
+        setLoading(false)
+
+        return () => {
+          subscription.unsubscribe()
+        }
       }
 
       setLoading(false)
@@ -122,7 +169,7 @@ export default function InventoryReportPage() {
   }, 0)
   const lowStockItems = products.filter((p) => {
     const inventory = p.inventory?.[0]
-    return inventory && inventory.quantity_on_hand <= (inventory.reorder_level || 0)
+    return inventory && inventory.quantity_on_hand > 0 && inventory.quantity_on_hand <= (inventory.reorder_level || 0)
   }).length
   const outOfStockItems = products.filter((p) => {
     const inventory = p.inventory?.[0]

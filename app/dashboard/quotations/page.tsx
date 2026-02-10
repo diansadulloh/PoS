@@ -90,11 +90,23 @@ export default function QuotationsPage() {
 
       if (!user) throw new Error('Not authenticated')
 
+      // Get staff record for the current user
+      const { data: staffData, error: staffError } = await supabase
+        .from('staff')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('business_id', business.id)
+        .single()
+
+      if (staffError || !staffData) {
+        throw new Error('Staff record not found. Please ensure your user profile is set up correctly.')
+      }
+
       const { line_items, ...quotationData } = formData
 
       const { data: quotation, error: quotationError } = await supabase
         .from('quotations')
-        .insert([{ ...quotationData, business_id: business.id, created_by: user.id }])
+        .insert([{ ...quotationData, business_id: business.id, created_by: staffData.id }])
         .select()
         .single()
 

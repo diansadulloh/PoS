@@ -154,16 +154,40 @@ export default function InventoryPage() {
 
       if (!user) throw new Error('Not authenticated')
 
+      if (!adjustment.product_id) {
+        throw new Error('Product ID is missing from adjustment')
+      }
+
       console.log('[v0] Creating stock adjustment transaction:', adjustment)
 
-      // Insert transaction record
+      // Fetch staff record to get staff ID
+      const { data: staffData, error: staffError } = await supabase
+        .from('staff')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('business_id', business.id)
+        .single()
+
+      if (staffError || !staffData) {
+        throw new Error('Staff record not found. Please ensure your user profile is set up correctly.')
+      }
+
+      console.log('[v0] Found staff record:', staffData.id)
+
+      // Insert transaction record with explicit fields to avoid undefined values
       const { data: transData, error: transError } = await supabase
         .from('inventory_transactions')
         .insert([
           {
-            ...adjustment,
             business_id: business.id,
-            created_by: user.id,
+            product_id: adjustment.product_id,
+            transaction_type: adjustment.transaction_type,
+            quantity: adjustment.transaction_type === 'adjustment' || adjustment.transaction_type === 'receiving' 
+              ? adjustment.quantity 
+              : -adjustment.quantity,
+            reference_type: adjustment.reference_type || 'manual',
+            notes: adjustment.notes || null,
+            created_by: staffData.id,
           },
         ])
         .select()
@@ -195,11 +219,12 @@ export default function InventoryPage() {
       console.log('[v0] Updating inventory - current:', currentStock, 'new:', newStock)
 
       if (currentInventory) {
-        // Update existing inventory
+        // Update existing inventory using product_id as the unique identifier
         const { data: invData, error: invError } = await supabase
           .from('inventory')
           .update({ quantity_on_hand: newStock })
-          .eq('id', currentInventory.id)
+          .eq('product_id', adjustment.product_id)
+          .eq('business_id', business.id)
           .select()
 
         console.log('[v0] Inventory update response:', { invData, invError })

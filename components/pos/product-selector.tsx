@@ -17,9 +17,10 @@ import { Search, Plus } from 'lucide-react'
 interface ProductSelectorProps {
   business: any
   onAddProduct: (product: any, quantity: number) => void
+  refreshTrigger?: number
 }
 
-export default function ProductSelector({ business, onAddProduct }: ProductSelectorProps) {
+export default function ProductSelector({ business, onAddProduct, refreshTrigger = 0 }: ProductSelectorProps) {
   const [products, setProducts] = useState<any[]>([])
   const [categories, setCategories] = useState<any[]>([])
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
@@ -27,47 +28,59 @@ export default function ProductSelector({ business, onAddProduct }: ProductSelec
   const [loading, setLoading] = useState(true)
   const [selectedQuantities, setSelectedQuantities] = useState<Record<string, number>>({})
 
+  const fetchData = async () => {
+    const supabase = createClient()
+
+    // Fetch categories
+    const { data: categoriesData } = await supabase
+      .from('categories')
+      .select('*')
+      .eq('business_id', business.id)
+      .order('name')
+
+    setCategories(categoriesData || [])
+
+    // Fetch products with inventory data
+    const { data: productsData } = await supabase
+      .from('products')
+      .select(`
+        *,
+        inventory(quantity_on_hand, reorder_level)
+      `)
+      .eq('business_id', business.id)
+      .eq('is_active', true)
+      .order('name')
+
+    setProducts(productsData || [])
+    setLoading(false)
+  }
+
   useEffect(() => {
-    const fetchData = async () => {
-      const supabase = createClient()
-
-      // Fetch categories
-      const { data: categoriesData } = await supabase
-        .from('categories')
-        .select('*')
-        .eq('business_id', business.id)
-        .order('name')
-
-      setCategories(categoriesData || [])
-
-      // Fetch products
-      const { data: productsData } = await supabase
-        .from('products')
-        .select('*')
-        .eq('business_id', business.id)
-        .eq('is_active', true)
-        .order('name')
-
-      setProducts(productsData || [])
-      setLoading(false)
-    }
-
     fetchData()
-  }, [business.id])
+  }, [business.id, refreshTrigger])
 
   const filteredProducts = products.filter((product) => {
     const matchesCategory =
       selectedCategory === 'all' || product.category_id === selectedCategory
     const matchesSearch =
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.sku.toLowerCase().includes(searchQuery.toLowerCase())
+      (product.sku?.toLowerCase() || '').includes(searchQuery.toLowerCase())
     return matchesCategory && matchesSearch
   })
 
   const handleAddToCart = (product: any) => {
+    if (!product || !product.id) {
+      console.error('[v0] Invalid product:', product)
+      return
+    }
     const quantity = selectedQuantities[product.id] || 1
+    if (quantity <= 0) {
+      console.warn('[v0] Invalid quantity:', quantity)
+      return
+    }
+    console.log('[v0] Adding to cart:', product.id, quantity)
     onAddProduct(product, quantity)
-    setSelectedQuantities((prev) => ({ ...prev, [product.id]: 0 }))
+    setSelectedQuantities((prev) => ({ ...prev, [product.id]: 1 }))
   }
 
   if (loading) {
@@ -90,6 +103,8 @@ export default function ProductSelector({ business, onAddProduct }: ProductSelec
           <div className="relative">
             <Search className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
             <Input
+              id="product-search"
+              name="productSearch"
               placeholder="Search products by name or SKU..."
               className="pl-10"
               value={searchQuery}
@@ -128,7 +143,17 @@ export default function ProductSelector({ business, onAddProduct }: ProductSelec
               <CardContent className="p-4 space-y-3">
                 <div>
                   <p className="font-semibold text-sm">{product.name}</p>
-                  <p className="text-xs text-muted-foreground">SKU: {product.sku}</p>
+                  <p className="text-xs text-muted-foreground">SKU: {product.sku || 'N/A'}</p>
+                  {product.inventory?.[0] && (
+                    <div className="mt-1 text-xs">
+                      <p className={product.inventory[0].quantity_on_hand <= 0 ? 'text-red-600 font-semibold' : 'text-green-600'}>
+                        Stock: {product.inventory[0].quantity_on_hand} units
+                      </p>
+                      {product.inventory[0].quantity_on_hand <= product.inventory[0].reorder_level && product.inventory[0].quantity_on_hand > 0 && (
+                        <p className="text-amber-600 text-xs">Low stock</p>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex justify-between items-center">

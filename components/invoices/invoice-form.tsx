@@ -43,10 +43,16 @@ export default function InvoiceForm({
   onSave,
   onCancel,
 }: InvoiceFormProps) {
+  const getDefaultDueDate = () => {
+    const date = new Date()
+    date.setDate(date.getDate() + 30) // Default to 30 days from invoice date
+    return date.toISOString().split('T')[0]
+  }
+
   const [formData, setFormData] = useState({
     customer_id: '',
     invoice_date: new Date().toISOString().split('T')[0],
-    due_date: '',
+    due_date: getDefaultDueDate(),
     notes: '',
     status: 'unpaid',
   })
@@ -136,6 +142,16 @@ export default function InvoiceForm({
 
     if (!formData.customer_id) {
       alert('Please select a customer')
+      return
+    }
+
+    if (!formData.invoice_date) {
+      alert('Please enter an invoice date')
+      return
+    }
+
+    if (!formData.due_date) {
+      alert('Please enter a due date')
       return
     }
 

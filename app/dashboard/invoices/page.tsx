@@ -5,8 +5,9 @@ import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Plus, Search, Eye, AlertCircle, CheckCircle, Clock } from 'lucide-react'
+import { Plus, Search, AlertCircle, CheckCircle, Clock, RefreshCw, Eye } from 'lucide-react'
 import InvoiceForm from '@/components/invoices/invoice-form'
+import InvoiceActions from '@/components/invoices/invoice-actions'
 import { useRouter } from 'next/navigation'
 
 export default function InvoicesPage() {
@@ -17,7 +18,33 @@ export default function InvoicesPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const router = useRouter()
+
+  const fetchInvoices = async (businessId: string) => {
+    const supabase = createClient()
+    const { data } = await supabase
+      .from('invoices')
+      .select(`
+        *,
+        customers(name)
+      `)
+      .eq('business_id', businessId)
+      .order('created_at', { ascending: false })
+
+    return data || []
+  }
+
+  const handleRefreshInvoices = async () => {
+    if (!business) return
+    setRefreshing(true)
+    try {
+      const updatedInvoices = await fetchInvoices(business.id)
+      setInvoices(updatedInvoices)
+    } finally {
+      setRefreshing(false)
+    }
+  }
 
   useEffect(() => {
     const fetchData = async () => {
@@ -90,16 +117,41 @@ export default function InvoicesPage() {
 
       if (!user) throw new Error('Not authenticated')
 
+      // Get staff record for the current user
+      const { data: staffData, error: staffError } = await supabase
+        .from('staff')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('business_id', business.id)
+        .single()
+
+      if (staffError || !staffData) {
+        throw new Error('Staff record not found. Please ensure your user profile is set up correctly.')
+      }
+
       const { line_items, ...invoiceData } = formData
 
       // Insert invoice
+      const invoicePayload = { 
+        ...invoiceData, 
+        business_id: business.id, 
+        created_by: staffData.id 
+      }
+      
+      console.log('[v0] Invoice payload:', invoicePayload)
+
       const { data: invoice, error: invoiceError } = await supabase
         .from('invoices')
-        .insert([{ ...invoiceData, business_id: business.id, created_by: user.id }])
+        .insert([invoicePayload])
         .select()
         .single()
 
-      if (invoiceError) throw invoiceError
+      if (invoiceError) {
+        console.error('[v0] Invoice error details:', invoiceError)
+        throw new Error(`Failed to create invoice: ${invoiceError.message}`)
+      }
+
+      console.log('[v0] Invoice created successfully:', invoice)
 
       // Refresh invoices list
       const { data: invoicesData } = await supabase
@@ -181,10 +233,20 @@ export default function InvoicesPage() {
           <h1 className="text-3xl font-bold">Invoices</h1>
           <p className="text-muted-foreground mt-1">Create and manage customer invoices</p>
         </div>
-        <Button className="gap-2" onClick={() => setShowForm(true)}>
-          <Plus className="w-4 h-4" />
-          Create Invoice
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={handleRefreshInvoices}
+            disabled={refreshing}
+          >
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+          </Button>
+          <Button className="gap-2" onClick={() => setShowForm(true)}>
+            <Plus className="w-4 h-4" />
+            Create Invoice
+          </Button>
+        </div>
       </div>
 
       {showForm && (
@@ -267,9 +329,11 @@ export default function InvoicesPage() {
                           </span>
                         </td>
                         <td className="px-6 py-3 text-center">
-                          <Button variant="ghost" size="sm">
-                            <Eye className="w-4 h-4" />
-                          </Button>
+                          <InvoiceActions
+                            invoice={invoice}
+                            onInvoiceUpdate={handleRefreshInvoices}
+                            onInvoiceDelete={handleRefreshInvoices}
+                          />
                         </td>
                       </tr>
                     )

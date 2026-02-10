@@ -3,11 +3,13 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import POSRegister from '@/components/pos/pos-register'
+import PendingOrders from '@/components/pos/pending-orders'
 import { useRouter } from 'next/navigation'
 
 export default function POSPage() {
   const [business, setBusiness] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
   const router = useRouter()
 
   useEffect(() => {
@@ -65,5 +67,15 @@ export default function POSPage() {
     )
   }
 
-  return <POSRegister business={business} />
+  return (
+    <div className="p-6">
+      <POSRegister 
+        business={business} 
+        refreshTrigger={refreshTrigger}
+        pendingOrdersComponent={
+          <PendingOrders business={business} refreshTrigger={refreshTrigger} />
+        }
+      />
+    </div>
+  )
 }

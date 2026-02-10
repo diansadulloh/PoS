@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useRouter } from 'next/navigation'
+import { useLanguage } from '@/lib/language-context'
 
 export default function SettingsPage() {
   const [business, setBusiness] = useState<any>(null)
@@ -22,6 +23,7 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true)
   const [isCreating, setIsCreating] = useState(false)
   const router = useRouter()
+  const { setLanguage } = useLanguage()
 
   useEffect(() => {
     const fetchBusiness = async () => {
@@ -130,6 +132,8 @@ export default function SettingsPage() {
 
         setBusiness(data)
         setIsCreating(false)
+        // Sync language to context
+        setLanguage(data.default_language || 'en')
         alert('Business profile created successfully!')
         router.push('/dashboard')
       } else {
@@ -158,6 +162,8 @@ export default function SettingsPage() {
           throw new Error(error.message || 'Failed to update business')
         }
 
+        // Sync language to context
+        setLanguage(business.default_language || 'en')
         alert('Settings saved successfully')
       }
     } catch (error) {

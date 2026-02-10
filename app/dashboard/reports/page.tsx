@@ -229,7 +229,7 @@ export default function ReportsPage() {
 
       {/* Report Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
+        <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => router.push('/dashboard/reports/sales')}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BarChart3 className="w-5 h-5" />
@@ -245,6 +245,15 @@ export default function ReportsPage() {
                 <li>Sales by product category</li>
                 <li>Top-selling products</li>
               </ul>
+              <button
+                className="mt-4 text-sm font-medium text-primary hover:underline"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  router.push('/dashboard/reports/sales')
+                }}
+              >
+                View Full Report →
+              </button>
             </div>
           </CardContent>
         </Card>
@@ -278,7 +287,7 @@ export default function ReportsPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => router.push('/dashboard/reports/customers')}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="w-5 h-5" />
@@ -294,11 +303,20 @@ export default function ReportsPage() {
                 <li>Customer acquisition trends</li>
                 <li>Customer retention rates</li>
               </ul>
+              <button
+                className="mt-4 text-sm font-medium text-primary hover:underline"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  router.push('/dashboard/reports/customers')
+                }}
+              >
+                View Full Report →
+              </button>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => router.push('/dashboard/reports/financial')}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <DollarSign className="w-5 h-5" />
@@ -314,6 +332,15 @@ export default function ReportsPage() {
                 <li>Cash flow analysis</li>
                 <li>Tax summaries</li>
               </ul>
+              <button
+                className="mt-4 text-sm font-medium text-primary hover:underline"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  router.push('/dashboard/reports/financial')
+                }}
+              >
+                View Full Report →
+              </button>
             </div>
           </CardContent>
         </Card>

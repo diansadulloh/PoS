@@ -2,31 +2,78 @@
 
 import React from "react"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { X } from 'lucide-react'
 
 interface RegisterFormProps {
   onSave: (formData: any) => Promise<void>
   onCancel: () => void
   registerToClose?: any
+  businessId?: string
 }
 
 export default function RegisterForm({
   onSave,
   onCancel,
   registerToClose,
+  businessId,
 }: RegisterFormProps) {
   const [formData, setFormData] = useState({
     register_name: registerToClose?.register_name || 'Main Register',
     opening_balance: registerToClose?.opening_balance || '',
     closing_balance: registerToClose ? '' : undefined,
+    assigned_staff_id: registerToClose?.assigned_staff_id || '',
     notes: registerToClose?.notes || '',
   })
 
   const [saving, setSaving] = useState(false)
+  const [staffMembers, setStaffMembers] = useState<any[]>([])
+  const [userRole, setUserRole] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!businessId || registerToClose) return
+
+      const supabase = createClient()
+      
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      // Get user's staff role
+      const { data: staffData } = await supabase
+        .from('staff')
+        .select('role')
+        .eq('user_id', user?.id)
+        .eq('business_id', businessId)
+        .single()
+
+      setUserRole(staffData?.role || null)
+
+      // Only show staff list if user is admin
+      if (staffData?.role === 'admin') {
+        const { data } = await supabase
+          .from('staff')
+          .select('id, first_name, last_name')
+          .eq('business_id', businessId)
+          .order('first_name')
+
+        setStaffMembers(data || [])
+      }
+    }
+
+    fetchData()
+  }, [businessId, registerToClose])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -95,6 +142,30 @@ export default function RegisterForm({
                   placeholder="0.00"
                 />
               </div>
+
+              {/* Assigned Staff - Only show for admins */}
+              {userRole === 'admin' && (
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Assign to Staff Member *</label>
+                  <Select
+                    value={formData.assigned_staff_id}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, assigned_staff_id: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select staff member" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {staffMembers.map((staff) => (
+                        <SelectItem key={staff.id} value={staff.id}>
+                          {staff.first_name} {staff.last_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </>
           )}
 

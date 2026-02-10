@@ -1,8 +1,16 @@
 'use client'
 
 import { User } from '@supabase/supabase-js'
-import { Bell, Clock, User as UserIcon } from 'lucide-react'
+import { Bell, Clock, Languages } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { useLanguage } from '@/lib/language-context'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Button } from '@/components/ui/button'
 
 interface TopBarProps {
   user: User | null
@@ -10,6 +18,7 @@ interface TopBarProps {
 
 export default function TopBar({ user }: TopBarProps) {
   const [currentTime, setCurrentTime] = useState<string>('')
+  const { language, setLanguage } = useLanguage()
   const userEmail = user?.email || 'User'
   const userName = user?.user_metadata?.name || userEmail?.split('@')[0] || 'User'
 
@@ -45,6 +54,25 @@ export default function TopBar({ user }: TopBarProps) {
       </div>
 
       <div className="flex items-center gap-4">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="sm" className="gap-2">
+              <Languages className="w-4 h-4" />
+              <span className="text-sm">{language === 'en' ? 'EN' : 'ID'}</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setLanguage('en')}>
+              <span className="mr-2">🇺🇸</span>
+              English
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setLanguage('id')}>
+              <span className="mr-2">🇮🇩</span>
+              Bahasa Indonesia
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
         <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors relative">
           <Bell className="w-5 h-5 text-gray-600" />
           <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>

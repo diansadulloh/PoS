@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useEffect, useState } from 'react'
 import DashboardOverview from '@/components/dashboard/overview'
 import QuickStats from '@/components/dashboard/quick-stats'
+import CustomerOrderLink from '@/components/dashboard/customer-order-link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import Link from 'next/link'
@@ -82,6 +83,7 @@ export default function DashboardPage() {
         <p className="text-muted-foreground mt-2">Manage your Point of Sale operations</p>
       </div>
 
+      <CustomerOrderLink business={business} />
       <QuickStats business={business} />
       <DashboardOverview business={business} />
     </div>

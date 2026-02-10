@@ -1,5 +1,6 @@
 'use client'
 
+import React, { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
@@ -12,61 +13,87 @@ import {
   FileText,
   Settings,
   LogOut,
-  Home,
+  LayoutDashboard,
   UtensilsCrossed,
   TrendingUp,
+  ChevronLeft,
+  ChevronDown,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { useLanguage } from '@/lib/language-context'
 
-const sidebarItems = [
-  {
-    category: 'Main',
-    items: [
-      { label: 'Dashboard', href: '/dashboard', icon: Home },
-      { label: 'Point of Sale', href: '/dashboard/pos', icon: ShoppingCart },
-    ],
-  },
-  {
-    category: 'Operations',
-    items: [
-      { label: 'Inventory', href: '/dashboard/inventory', icon: Package },
-      { label: 'Customers', href: '/dashboard/customers', icon: Users },
-      { label: 'Suppliers', href: '/dashboard/suppliers', icon: TrendingUp },
-    ],
-  },
-  {
-    category: 'Sales & Invoicing',
-    items: [
-      { label: 'Sales Register', href: '/dashboard/sales', icon: DollarSign },
-      { label: 'Quotations', href: '/dashboard/quotations', icon: FileText },
-      { label: 'Invoices', href: '/dashboard/invoices', icon: FileText },
-    ],
-  },
-  {
-    category: 'Financial',
-    items: [
-      { label: 'Expenses', href: '/dashboard/expenses', icon: DollarSign },
-      { label: 'Reports', href: '/dashboard/reports', icon: BarChart3 },
-      { label: 'Cash Register', href: '/dashboard/cash-register', icon: DollarSign },
-    ],
-  },
-  {
-    category: 'Restaurant',
-    items: [
-      { label: 'Tables', href: '/dashboard/restaurant-tables', icon: UtensilsCrossed },
-    ],
-  },
-  {
-    category: 'Admin',
-    items: [
-      { label: 'Staff Management', href: '/dashboard/staff', icon: Users },
-      { label: 'Settings', href: '/dashboard/settings', icon: Settings },
-    ],
-  },
-]
+// --- Types ---
+interface NavItem {
+  label: string
+  href: string
+  icon: React.ElementType
+}
+
+interface NavCategory {
+  category: string
+  items: NavItem[]
+}
 
 export default function Sidebar() {
   const pathname = usePathname()
+  const { t } = useLanguage()
+  const [isMinimized, setIsMinimized] = useState(false)
+  const [openCategories, setOpenCategories] = useState<string[]>(['Main',
+                                                                 'Operations'])
+
+  const sidebarItems: NavCategory[] = useMemo(() => [
+    {
+      category: 'Main',
+      items: [
+        { label: t('dashboard'), href: '/dashboard', icon: LayoutDashboard },
+                                              { label: t('pos'), href:
+                                                '/dashboard/pos', icon:
+                                                ShoppingCart },
+      ],
+    },
+    {
+      category: 'Operations',
+      items: [
+        { label: t('inventory'), href: '/dashboard/inventory', icon: Package },
+                                              { label: t('customers'), href:
+                                                '/dashboard/customers', icon:
+                                                Users },
+                                                { label: t('suppliers'), href:
+                                                  '/dashboard/suppliers', icon:
+                                                  TrendingUp },
+      ],
+    },
+    {
+      category: 'Sales',
+      items: [
+        { label: t('sales'), href: '/dashboard/sales', icon: DollarSign },
+                                              { label: t('quotations'), href:
+                                                '/dashboard/quotations', icon:
+                                                FileText },
+                                                { label: t('invoices'), href:
+                                                  '/dashboard/invoices', icon:
+                                                  FileText },
+      ],
+    },
+    {
+      category: 'System',
+      items: [
+        { label: t('staff'), href: '/dashboard/staff', icon: Users },
+                                              { label: t('settings'), href:
+                                                '/dashboard/settings', icon:
+                                                Settings },
+      ],
+    },
+  ], [t])
+
+  const toggleCategory = (category: string) => {
+    if (isMinimized) return
+      setOpenCategories((prev) =>
+      prev.includes(category)
+      ? prev.filter((c) => c !== category)
+      : [...prev, category]
+      )
+  }
 
   const handleLogout = async () => {
     const supabase = createClient()
@@ -75,57 +102,136 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="w-64 bg-slate-900 text-white flex flex-col h-screen border-r border-slate-800">
-      {/* Logo/Brand */}
-      <div className="p-6 border-b border-slate-800">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <ShoppingCart className="w-6 h-6" />
-          POS System
-        </h1>
+    <aside
+    className={cn(
+      'relative flex flex-col h-screen bg-[#020617] border-r border-slate-800
+      transition-all duration-300 ease-in-out',
+      isMinimized ? 'w-[78px]' : 'w-72'
+    )}
+    >
+    {/* Toggle Button */}
+    <button
+    type="button"
+    onClick={() => setIsMinimized(!isMinimized)}
+    className="absolute -right-3 top-10 z-50 flex h-6 w-6 items-center
+    justify-center rounded-full bg-blue-600 text-white shadow-md
+    transition-transform hover:bg-blue-500 active:scale-95"
+    aria-label="Toggle Sidebar"
+    >
+    <ChevronLeft className={cn('h-4 w-4 transition-transform duration-300',
+      isMinimized && 'rotate-180')} />
+      </button>
+
+      {/* Header */}
+      <div className="flex h-20 items-center px-6">
+      <div className="flex items-center gap-3">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center
+      rounded-xl bg-blue-600">
+      <ShoppingCart className="h-6 w-6 text-white" />
+      </div>
+      {!isMinimized && (
+        <span className="text-xl font-bold tracking-tight
+        text-white">POS<span className="text-blue-500">PRO</span></span>
+      )}
+      </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-4">
-        {sidebarItems.map((category) => (
-          <div key={category.category} className="mb-6">
-            <h3 className="px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-              {category.category}
-            </h3>
-            <div className="space-y-1">
-              {category.items.map((item) => {
-                const Icon = item.icon
-                const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={cn(
-                      'mx-2 px-4 py-2 rounded-md flex items-center gap-3 transition-colors',
-                      isActive
-                        ? 'bg-blue-600 text-white'
-                        : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                    )}
-                  >
-                    <Icon className="w-4 h-4" />
-                    <span className="text-sm">{item.label}</span>
-                  </Link>
-                )
-              })}
-            </div>
-          </div>
+      <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-4 no-scrollbar">
+      {sidebarItems.map((group) => (
+        <div key={group.category} className="space-y-1">
+        {!isMinimized && (
+          <button
+          type="button"
+          onClick={() => toggleCategory(group.category)}
+          className="flex w-full items-center justify-between px-4 py-2
+          text-[11px] font-bold uppercase tracking-widest text-slate-500
+          hover:text-slate-300 transition-colors"
+          >
+          {group.category}
+          <ChevronDown className={cn('h-3 w-3 transition-transform',
+            !openCategories.includes(group.category) && '-rotate-90')} />
+            </button>
+        )}
+
+        <div className={cn(
+          'space-y-1 transition-all duration-300 overflow-hidden',
+          !isMinimized && !openCategories.includes(group.category) ?
+          'max-h-0 opacity-0' : 'max-h-[500px] opacity-100'
+        )}>
+        {group.items.map((item) => (
+          <NavItemComponent
+          key={item.href}
+          item={item}
+          isMinimized={isMinimized}
+          isActive={pathname === item.href ||
+            pathname.startsWith(`${item.href}/`)}
+            />
         ))}
+        </div>
+        </div>
+      ))}
       </nav>
 
-      {/* Logout Button */}
-      <div className="p-4 border-t border-slate-800">
-        <button
-          onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-4 py-2 rounded-md text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
-        >
-          <LogOut className="w-4 h-4" />
-          <span className="text-sm">Logout</span>
-        </button>
+      {/* Footer */}
+      <div className="border-t border-slate-800 p-4">
+      <button
+      type="button"
+      onClick={handleLogout}
+      className={cn(
+        'group flex items-center rounded-lg py-2.5 text-slate-400
+        transition-all hover:bg-red-500/10 hover:text-red-400',
+        isMinimized ? 'justify-center px-0' : 'w-full px-4 gap-3'
+      )}
+      >
+      <LogOut className="h-5 w-5 shrink-0" />
+      {!isMinimized && <span className="text-sm font-medium">Logout</span>}
+      </button>
       </div>
-    </aside>
+      </aside>
+  )
+}
+
+// --- Sub-component for Cleaner Code ---
+function NavItemComponent({
+  item,
+  isMinimized,
+  isActive
+}: {
+  item: NavItem,
+  isMinimized: boolean,
+  isActive: boolean
+}) {
+  const Icon = item.icon
+
+  return (
+    <Link
+      href={item.href}
+      className={cn(
+        'group relative flex items-center rounded-lg py-2.5 transition-all
+duration-200',
+        isMinimized ? 'justify-center px-0 mx-2' : 'px-4 gap-3 mx-2',
+        isActive
+          ? 'bg-blue-600/10 text-blue-400 font-medium'
+          : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'
+      )}
+    >
+      {isActive && (
+        <div className="absolute left-0 h-5 w-1 rounded-r-full bg-blue-500" />
+      )}
+
+      <Icon className={cn('h-5 w-5 shrink-0', isActive ? 'text-blue-500' :
+'group-hover:text-white')} />
+
+      {!isMinimized && <span className="text-[14px]">{item.label}</span>}
+
+      {isMinimized && (
+        <div className="absolute left-14 z-[70] ml-2 scale-0 whitespace-nowrap
+rounded bg-slate-800 border border-slate-700 px-3 py-1.5 text-xs text-white
+shadow-xl transition-all group-hover:scale-100 origin-left">
+          {item.label}
+        </div>
+      )}
+    </Link>
   )
 }
