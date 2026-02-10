@@ -44,7 +44,6 @@ export default function ProductForm({
     tax_type: product?.tax_type || 'vat',
     barcode: product?.barcode || '',
     is_active: product?.is_active ?? true,
-    reorder_level: product?.reorder_level || 10,
   })
 
   const [saving, setSaving] = useState(false)
@@ -120,7 +119,6 @@ export default function ProductForm({
         purchase_price: parseFloat(formData.purchase_price) || 0,
         selling_price: parseFloat(formData.selling_price) || 0,
         tax_rate: parseFloat(formData.tax_rate) || 0,
-        reorder_level: parseInt(formData.reorder_level) || 10,
       })
     } finally {
       setSaving(false)
@@ -323,22 +321,6 @@ export default function ProductForm({
                 }
                 placeholder="0.00"
               />
-            </div>
-
-            {/* Minimum Stock (Reorder Level) */}
-            <div>
-              <label className="text-sm font-medium mb-1 block">Minimum Stock (for low stock tracking)</label>
-              <Input
-                type="number"
-                step="1"
-                min="0"
-                value={formData.reorder_level}
-                onChange={(e) =>
-                  setFormData({ ...formData, reorder_level: e.target.value })
-                }
-                placeholder="Enter minimum quantity"
-              />
-              <p className="text-xs text-muted-foreground mt-1">Alert when stock falls below this level</p>
             </div>
           </div>
 
