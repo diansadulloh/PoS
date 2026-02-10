@@ -3,7 +3,6 @@
 import React, { useState, useMemo, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import {
   BarChart3,
@@ -58,9 +57,7 @@ export default function Sidebar() {
   const toggleCategory = useCallback((category: string) => {
     if (isMinimized) return
     setOpenCategories((prev) =>
-      prev.includes(category)
-        ? prev.filter((c) => c !== category)
-        : [...prev, category]
+      prev.includes(category) ? prev.filter((c) => c !== category) : [...prev, category]
     )
   }, [isMinimized])
 
@@ -77,25 +74,26 @@ export default function Sidebar() {
         isMinimized ? 'w-20' : 'w-72'
       )}
     >
-      {/* Header */}
+      {/* Brand Header */}
       <div className="h-20 flex items-center px-6 border-b border-slate-800/50">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 overflow-hidden">
           <div className="bg-blue-600 p-2 rounded-lg shrink-0">
             <ShoppingCart className="w-5 h-5 text-white" />
           </div>
-          {!isMinimized && (
-            <span className="font-bold text-xl tracking-tight text-white uppercase truncate">
-              POS Pro
-            </span>
-          )}
+          <span className={cn(
+            'font-bold text-xl tracking-tight text-white uppercase transition-opacity duration-300',
+            isMinimized ? 'opacity-0 w-0' : 'opacity-100'
+          )}>
+            POS Pro
+          </span>
         </div>
       </div>
 
-      {/* Toggle Button */}
+      {/* Floating Toggle Button */}
       <button
         type="button"
         onClick={() => setIsMinimized(!isMinimized)}
-        className="absolute -right-3 top-10 z-50 flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-white shadow-md hover:bg-blue-500 transition-transform"
+        className="absolute -right-3 top-10 z-50 flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg hover:bg-blue-500 transition-transform active:scale-90"
       >
         <ChevronLeft className={cn('h-4 w-4 transition-transform duration-300', isMinimized && 'rotate-180')} />
       </button>
@@ -112,39 +110,34 @@ export default function Sidebar() {
               >
                 {group.category}
                 <ChevronDown className={cn(
-                  'w-3 h-3 transition-transform duration-200',
+                  'w-3 h-3 transition-transform duration-300',
                   !openCategories.includes(group.category) && '-rotate-90'
                 )} />
               </button>
             )}
 
-            <AnimatePresence initial={false}>
-              {(isMinimized || openCategories.includes(group.category)) && (
-                <motion.div
-                  initial={isMinimized ? { opacity: 1 } : { height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.2, ease: 'easeInOut' }}
-                  className="space-y-1 overflow-hidden"
-                >
-                  {group.items.map((item) => (
-                    <NavItem
-                      key={item.href}
-                      label={item.label}
-                      href={item.href}
-                      icon={item.icon}
-                      isMinimized={isMinimized}
-                      isActive={pathname === item.href || pathname.startsWith(`${item.href}/`)}
-                    />
-                  ))}
-                </motion.div>
+            <div 
+              className={cn(
+                'space-y-1 transition-all duration-300 ease-in-out overflow-hidden',
+                !isMinimized && !openCategories.includes(group.category) ? 'max-h-0 opacity-0' : 'max-h-[500px] opacity-100'
               )}
-            </AnimatePresence>
+            >
+              {group.items.map((item) => (
+                <NavItem
+                  key={item.href}
+                  label={item.label}
+                  href={item.href}
+                  icon={item.icon}
+                  isMinimized={isMinimized}
+                  isActive={pathname === item.href || pathname.startsWith(`${item.href}/`)}
+                />
+              ))}
+            </div>
           </div>
         ))}
       </nav>
 
-      {/* Footer Logout */}
+      {/* Logout */}
       <div className="p-4 border-t border-slate-800">
         <button
           type="button"
@@ -167,8 +160,8 @@ function NavItem({ label, href, icon: Icon, isMinimized, isActive }: any) {
     <Link
       href={href}
       className={cn(
-        'group relative flex items-center rounded-xl transition-all duration-200 py-2.5 mx-2',
-        isMinimized ? 'justify-center px-0' : 'px-4 gap-3',
+        'group relative flex items-center rounded-xl transition-all duration-200 py-2.5 mx-1',
+        isMinimized ? 'justify-center' : 'px-4 gap-3',
         isActive 
           ? 'bg-blue-600/15 text-blue-400 font-semibold' 
           : 'text-slate-400 hover:bg-slate-800/60 hover:text-white'
@@ -177,11 +170,12 @@ function NavItem({ label, href, icon: Icon, isMinimized, isActive }: any) {
       {isActive && (
         <div className="absolute left-0 w-1 h-5 bg-blue-500 rounded-r-full" />
       )}
-      <Icon className={cn('w-5 h-5 shrink-0', isActive ? 'text-blue-500' : 'group-hover:text-white')} />
+      <Icon className={cn('w-5 h-5 shrink-0 transition-colors', isActive ? 'text-blue-500' : 'group-hover:text-white')} />
+      
       {!isMinimized && <span className="text-[14px] truncate">{label}</span>}
       
       {isMinimized && (
-        <div className="absolute left-14 scale-0 group-hover:scale-100 transition-all bg-slate-800 text-white text-[10px] py-1 px-2 rounded shadow-xl border border-slate-700 z-[100] whitespace-nowrap">
+        <div className="absolute left-14 invisible group-hover:visible opacity-0 group-hover:opacity-100 translate-x-[-10px] group-hover:translate-x-0 transition-all bg-slate-800 text-white text-[10px] py-1 px-2 rounded shadow-xl border border-slate-700 z-[100] whitespace-nowrap">
           {label}
         </div>
       )}
