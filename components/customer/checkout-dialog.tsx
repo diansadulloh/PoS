@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Loader2, CheckCircle } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { createClient } from '@/lib/supabase/client'
+import OrderSummaryDialog, { OrderSummaryData } from './order-summary-dialog'
 
 interface CheckoutDialogProps {
   open: boolean
@@ -34,6 +35,8 @@ export default function CheckoutDialog({
   const [notes, setNotes] = useState('')
   const [processing, setProcessing] = useState(false)
   const [loadingTables, setLoadingTables] = useState(false)
+  const [showOrderSummary, setShowOrderSummary] = useState(false)
+  const [orderSummary, setOrderSummary] = useState<OrderSummaryData | null>(null)
   const { toast } = useToast()
   const createdByUserId = 'some_user_id'; // Declare the variable here
 
@@ -216,19 +219,51 @@ export default function CheckoutDialog({
       console.log('[v0] Sale items created')
 
       // Update table status if dine_in
+      let tableNumber = ''
       if (orderType === 'dine_in' && selectedTableId) {
+        const selectedTable = availableTables.find((t) => t.id === selectedTableId)
+        tableNumber = selectedTable ? `Table ${selectedTable.table_number}` : ''
+        
         await supabase
           .from('restaurant_tables')
           .update({ status: 'occupied' })
           .eq('id', selectedTableId)
       }
 
-      toast({
-        title: 'Order Placed Successfully!',
-        description: `Receipt: ${receiptNumber} | Total: ${business?.currency_code} ${cartTotal.toFixed(2)}`,
-      })
+      // Prepare order summary data
+      const summaryData: OrderSummaryData = {
+        receiptNumber,
+        customerName,
+        customerPhone: customerPhone || undefined,
+        orderType,
+        tableNumber: tableNumber || undefined,
+        items: cartItems.map((item) => ({
+          id: item.id,
+          name: item.name,
+          quantity: item.quantity,
+          price: item.selling_price,
+          total: item.selling_price * item.quantity,
+        })),
+        subtotal: cartTotal,
+        total: cartTotal,
+        notes: notes || undefined,
+        timestamp: new Date().toISOString(),
+        currencyCode: business?.currency_code || 'IDR',
+      }
 
-      // Reset form and close dialog
+      // Save to localStorage
+      try {
+        localStorage.setItem('lastOrderSummary', JSON.stringify(summaryData))
+        console.log('[v0] Order summary saved to localStorage')
+      } catch (error) {
+        console.error('[v0] Failed to save order to localStorage:', error)
+      }
+
+      // Set order summary and show dialog
+      setOrderSummary(summaryData)
+      setShowOrderSummary(true)
+
+      // Reset form and close checkout dialog
       setCustomerName('')
       setCustomerPhone('')
       setNotes('')
@@ -253,8 +288,9 @@ export default function CheckoutDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CheckCircle className="w-5 h-5 text-green-600" />
@@ -385,5 +421,13 @@ export default function CheckoutDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    {/* Order Summary Dialog */}
+    <OrderSummaryDialog
+      open={showOrderSummary}
+      onOpenChange={setShowOrderSummary}
+      orderData={orderSummary}
+    />
+    </>
   )
 }

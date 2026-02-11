@@ -6,8 +6,9 @@ import { useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { ShoppingCart, Search, Loader2 } from 'lucide-react'
+import { ShoppingCart, Search, Loader2, History, X } from 'lucide-react'
 import CheckoutDialog from '@/components/customer/checkout-dialog'
+import OrderSummaryDialog, { OrderSummaryData } from '@/components/customer/order-summary-dialog'
 
 const DEFAULT_BUSINESS_ID = 'e7b99a74-4394-42c4-9659-0ac5b76c5527'
 
@@ -23,6 +24,9 @@ export default function Page() {
   const [loading, setLoading] = useState(true)
   const [showCart, setShowCart] = useState(false)
   const [showCheckout, setShowCheckout] = useState(false)
+  const [showOrderHistory, setShowOrderHistory] = useState(false)
+  const [lastOrder, setLastOrder] = useState<OrderSummaryData | null>(null)
+  const [hasOrderHistory, setHasOrderHistory] = useState(false)
 
   // Load business and products on mount
   useEffect(() => {
