@@ -2,7 +2,7 @@
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { CheckCircle, Receipt } from 'lucide-react'
+import { CheckCircle, Receipt, Trash2 } from 'lucide-react'
 
 export interface OrderSummaryData {
   receiptNumber: string
@@ -28,14 +28,24 @@ interface OrderSummaryDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   orderData: OrderSummaryData | null
+  onClearHistory?: () => void
+  showClearButton?: boolean
 }
 
 export default function OrderSummaryDialog({
   open,
   onOpenChange,
   orderData,
+  onClearHistory,
+  showClearButton = false,
 }: OrderSummaryDialogProps) {
   if (!orderData) return null
+
+  const handleClearHistory = () => {
+    if (onClearHistory) {
+      onClearHistory()
+    }
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -139,10 +149,20 @@ export default function OrderSummaryDialog({
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="flex-col sm:flex-row gap-2">
+          {showClearButton && (
+            <Button
+              onClick={handleClearHistory}
+              variant="outline"
+              className="flex-1 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 gap-2"
+            >
+              <Trash2 className="w-4 h-4" />
+              Clear History
+            </Button>
+          )}
           <Button
             onClick={() => onOpenChange(false)}
-            className="w-full bg-orange-600 hover:bg-orange-700 text-white"
+            className="flex-1 bg-orange-600 hover:bg-orange-700 text-white"
           >
             Close
           </Button>

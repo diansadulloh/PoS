@@ -28,6 +28,21 @@ export default function Page() {
   const [lastOrder, setLastOrder] = useState<OrderSummaryData | null>(null)
   const [hasOrderHistory, setHasOrderHistory] = useState(false)
 
+  // Check for order history in localStorage on mount
+  useEffect(() => {
+    try {
+      const savedOrder = localStorage.getItem('lastOrderSummary')
+      if (savedOrder) {
+        const orderData = JSON.parse(savedOrder) as OrderSummaryData
+        setLastOrder(orderData)
+        setHasOrderHistory(true)
+        console.log('[v0] Loaded order history from localStorage')
+      }
+    } catch (error) {
+      console.error('[v0] Failed to load order history:', error)
+    }
+  }, [])
+
   // Load business and products on mount
   useEffect(() => {
     const loadBusiness = async () => {
@@ -118,6 +133,32 @@ export default function Page() {
   const cartTotal = cart.reduce((sum, item) => sum + (item.selling_price || 0) * item.quantity, 0)
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0)
 
+  const handleClearHistory = () => {
+    try {
+      localStorage.removeItem('lastOrderSummary')
+      setLastOrder(null)
+      setHasOrderHistory(false)
+      setShowOrderHistory(false)
+      console.log('[v0] Order history cleared')
+    } catch (error) {
+      console.error('[v0] Failed to clear order history:', error)
+    }
+  }
+
+  const handleOpenOrderHistory = () => {
+    try {
+      const savedOrder = localStorage.getItem('lastOrderSummary')
+      if (savedOrder) {
+        const orderData = JSON.parse(savedOrder) as OrderSummaryData
+        setLastOrder(orderData)
+        setShowOrderHistory(true)
+        console.log('[v0] Opened order history')
+      }
+    } catch (error) {
+      console.error('[v0] Failed to open order history:', error)
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 via-white to-orange-50">
@@ -144,17 +185,30 @@ export default function Page() {
                 <p className="text-sm text-gray-600">Order from our menu</p>
               </div>
             </div>
-            <Button
-              onClick={() => setShowCart(!showCart)}
-              className="bg-orange-600 hover:bg-orange-700 text-white relative"
-            >
-              Cart
-              {cartCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center">
-                  {cartCount}
-                </span>
+            <div className="flex items-center gap-2">
+              {hasOrderHistory && (
+                <Button
+                  onClick={handleOpenOrderHistory}
+                  variant="outline"
+                  size="icon"
+                  className="relative border-orange-200 hover:bg-orange-50"
+                  title="View last order"
+                >
+                  <History className="w-5 h-5 text-orange-600" />
+                </Button>
               )}
-            </Button>
+              <Button
+                onClick={() => setShowCart(!showCart)}
+                className="bg-orange-600 hover:bg-orange-700 text-white relative"
+              >
+                Cart
+                {cartCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center">
+                    {cartCount}
+                  </span>
+                )}
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -331,7 +385,29 @@ export default function Page() {
         onCheckoutComplete={() => {
           setCart([])
           setShowCart(false)
+          
+          // Reload order history from localStorage after successful checkout
+          try {
+            const savedOrder = localStorage.getItem('lastOrderSummary')
+            if (savedOrder) {
+              const orderData = JSON.parse(savedOrder) as OrderSummaryData
+              setLastOrder(orderData)
+              setHasOrderHistory(true)
+              console.log('[v0] Reloaded order history after checkout')
+            }
+          } catch (error) {
+            console.error('[v0] Failed to reload order history:', error)
+          }
         }}
+      />
+
+      {/* Order History Dialog */}
+      <OrderSummaryDialog
+        open={showOrderHistory}
+        onOpenChange={setShowOrderHistory}
+        orderData={lastOrder}
+        onClearHistory={handleClearHistory}
+        showClearButton={true}
       />
     </div>
   )

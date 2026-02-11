@@ -251,7 +251,7 @@ export default function CheckoutDialog({
         currencyCode: business?.currency_code || 'IDR',
       }
 
-      // Save to localStorage
+      // Save new order to localStorage (overwrites previous, persists until manually cleared)
       try {
         localStorage.setItem('lastOrderSummary', JSON.stringify(summaryData))
         console.log('[v0] Order summary saved to localStorage')
