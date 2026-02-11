@@ -251,10 +251,27 @@ export default function CheckoutDialog({
         currencyCode: business?.currency_code || 'IDR',
       }
 
-      // Save new order to localStorage (overwrites previous, persists until manually cleared)
+      // Save new order to orderHistory array in localStorage
       try {
-        localStorage.setItem('lastOrderSummary', JSON.stringify(summaryData))
-        console.log('[v0] Order summary saved to localStorage')
+        // Get existing order history
+        const existingHistory = localStorage.getItem('orderHistory')
+        let orderHistory: OrderSummaryData[] = []
+        
+        if (existingHistory) {
+          orderHistory = JSON.parse(existingHistory) as OrderSummaryData[]
+        }
+        
+        // Add new order at the beginning (most recent first)
+        orderHistory.unshift(summaryData)
+        
+        // Keep only last 20 orders to avoid localStorage size limits
+        if (orderHistory.length > 20) {
+          orderHistory = orderHistory.slice(0, 20)
+        }
+        
+        // Save updated history
+        localStorage.setItem('orderHistory', JSON.stringify(orderHistory))
+        console.log('[v0] Order saved to history. Total orders:', orderHistory.length)
       } catch (error) {
         console.error('[v0] Failed to save order to localStorage:', error)
       }
