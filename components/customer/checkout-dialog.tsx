@@ -251,10 +251,15 @@ export default function CheckoutDialog({
         currencyCode: business?.currency_code || 'IDR',
       }
 
-      // Save to localStorage
+      // Clear old order history and save new one to localStorage
       try {
+        // Clear any existing order history first
+        localStorage.removeItem('lastOrderSummary')
+        console.log('[v0] Cleared old order history')
+        
+        // Save new order summary
         localStorage.setItem('lastOrderSummary', JSON.stringify(summaryData))
-        console.log('[v0] Order summary saved to localStorage')
+        console.log('[v0] New order summary saved to localStorage')
       } catch (error) {
         console.error('[v0] Failed to save order to localStorage:', error)
       }
