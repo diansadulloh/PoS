@@ -1,8 +1,8 @@
 'use client'
 
-import React, { useState, useMemo, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import {
   BarChart3,
@@ -17,7 +17,7 @@ import {
   UtensilsCrossed,
   TrendingUp,
   ChevronLeft,
-  ChevronDown,
+  LayoutDashboard,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useLanguage } from '@/lib/language-context'
@@ -26,13 +26,12 @@ export default function Sidebar() {
   const pathname = usePathname()
   const { t } = useLanguage()
   const [isMinimized, setIsMinimized] = useState(false)
-  const [openCategories, setOpenCategories] = useState<string[]>(['Main'])
 
-  const sidebarItems = useMemo(() => [
+  const sidebarItems = [
     {
       category: 'Main',
       items: [
-        { label: t('dashboard'), href: '/dashboard', icon: Home },
+        { label: t('dashboard'), href: '/dashboard', icon: LayoutDashboard },
         { label: t('pos'), href: '/dashboard/pos', icon: ShoppingCart },
       ],
     },
@@ -52,14 +51,22 @@ export default function Sidebar() {
         { label: t('invoices'), href: '/dashboard/invoices', icon: FileText },
       ],
     },
-  ], [t])
-
-  const toggleCategory = useCallback((category: string) => {
-    if (isMinimized) return
-    setOpenCategories((prev) =>
-      prev.includes(category) ? prev.filter((c) => c !== category) : [...prev, category]
-    )
-  }, [isMinimized])
+    {
+      category: 'Management',
+      items: [
+        { label: t('expenses'), href: '/dashboard/expenses', icon: DollarSign },
+        { label: t('reports'), href: '/dashboard/reports', icon: BarChart3 },
+        { label: t('restaurantTables'), href: '/dashboard/restaurant-tables', icon: UtensilsCrossed },
+      ],
+    },
+    {
+      category: 'System',
+      items: [
+        { label: t('staff'), href: '/dashboard/staff', icon: Users },
+        { label: t('settings'), href: '/dashboard/settings', icon: Settings },
+      ],
+    },
+  ]
 
   const handleLogout = async () => {
     const supabase = createClient()
@@ -68,117 +75,105 @@ export default function Sidebar() {
   }
 
   return (
-    <aside
+    <aside 
       className={cn(
-        'relative flex flex-col h-screen bg-[#0f172a] text-slate-300 border-r border-slate-800 transition-all duration-300 ease-in-out',
-        isMinimized ? 'w-20' : 'w-72'
+        'relative bg-[#0f172a] text-slate-300 flex flex-col h-screen transition-all duration-300 ease-in-out border-r border-slate-800',
+        isMinimized ? 'w-[78px]' : 'w-72'
       )}
     >
+      {/* Toggle Button - Floating Style */}
+      <button
+        onClick={() => setIsMinimized(!isMinimized)}
+        className="absolute -right-3 top-12 bg-blue-600 hover:bg-blue-500 text-white rounded-full p-1 shadow-lg z-50 transition-transform active:scale-90"
+      >
+        <ChevronLeft className={cn('w-4 h-4 transition-transform duration-300', isMinimized && 'rotate-180')} />
+      </button>
+
       {/* Brand Header */}
-      <div className="h-20 flex items-center px-6 border-b border-slate-800/50">
-        <div className="flex items-center gap-3 overflow-hidden">
-          <div className="bg-blue-600 p-2 rounded-lg shrink-0">
-            <ShoppingCart className="w-5 h-5 text-white" />
+      <div className="h-20 flex items-center px-6 mb-2">
+        <div className="flex items-center gap-3">
+          <div className="bg-blue-600 p-2 rounded-xl">
+            <ShoppingCart className="w-6 h-6 text-white" />
           </div>
-          <span className={cn(
-            'font-bold text-xl tracking-tight text-white uppercase transition-opacity duration-300',
-            isMinimized ? 'opacity-0 w-0' : 'opacity-100'
-          )}>
-            POS Pro
-          </span>
+          {!isMinimized && (
+            <span className="text-xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
+              POS PRO
+            </span>
+          )}
         </div>
       </div>
 
-      {/* Floating Toggle Button */}
-      <button
-        type="button"
-        onClick={() => setIsMinimized(!isMinimized)}
-        className="absolute -right-3 top-10 z-50 flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg hover:bg-blue-500 transition-transform active:scale-90"
-      >
-        <ChevronLeft className={cn('h-4 w-4 transition-transform duration-300', isMinimized && 'rotate-180')} />
-      </button>
-
-      {/* Nav Content */}
-      <nav className="flex-1 overflow-y-auto overflow-x-hidden py-6 px-3 space-y-4 custom-scrollbar">
-        {sidebarItems.map((group) => (
-          <div key={group.category} className="space-y-1">
+      {/* Navigation Content */}
+      <nav className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar px-3 space-y-6">
+        {sidebarItems.map((category) => (
+          <div key={category.category}>
             {!isMinimized && (
-              <button
-                type="button"
-                onClick={() => toggleCategory(group.category)}
-                className="flex items-center justify-between w-full px-4 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-[2px] hover:text-slate-300 transition-colors"
-              >
-                {group.category}
-                <ChevronDown className={cn(
-                  'w-3 h-3 transition-transform duration-300',
-                  !openCategories.includes(group.category) && '-rotate-90'
-                )} />
-              </button>
+              <p className="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-[2px] mb-3">
+                {category.category}
+              </p>
             )}
+            <div className="space-y-1">
+              {category.items.map((item) => {
+                const Icon = item.icon
+                const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+                
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      'group relative flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200',
+                      isActive 
+                        ? 'bg-blue-600/10 text-blue-400 font-medium' 
+                        : 'hover:bg-slate-800/50 hover:text-white'
+                    )}
+                  >
+                    {/* Active Indicator Line */}
+                    {isActive && (
+                      <div className="absolute left-0 w-1 h-6 bg-blue-500 rounded-r-full" />
+                    )}
+                    
+                    <Icon className={cn(
+                      'w-5 h-5 min-w-[20px] transition-colors',
+                      isActive ? 'text-blue-500' : 'group-hover:text-white'
+                    )} />
+                    
+                    {!isMinimized && (
+                      <span className="text-[14px] truncate">{item.label}</span>
+                    )}
 
-            <div 
-              className={cn(
-                'space-y-1 transition-all duration-300 ease-in-out overflow-hidden',
-                !isMinimized && !openCategories.includes(group.category) ? 'max-h-0 opacity-0' : 'max-h-[500px] opacity-100'
-              )}
-            >
-              {group.items.map((item) => (
-                <NavItem
-                  key={item.href}
-                  label={item.label}
-                  href={item.href}
-                  icon={item.icon}
-                  isMinimized={isMinimized}
-                  isActive={pathname === item.href || pathname.startsWith(`${item.href}/`)}
-                />
-              ))}
+                    {/* Tooltip for Minimized State */}
+                    {isMinimized && (
+                      <div className="absolute left-16 scale-0 group-hover:scale-100 transition-all origin-left bg-slate-800 text-white text-xs py-1.5 px-3 rounded shadow-xl border border-slate-700 whitespace-nowrap z-[60]">
+                        {item.label}
+                      </div>
+                    )}
+                  </Link>
+                )
+              })}
             </div>
           </div>
         ))}
       </nav>
 
-      {/* Logout */}
-      <div className="p-4 border-t border-slate-800">
-        <button
-          type="button"
-          onClick={handleLogout}
-          className={cn(
-            'flex items-center gap-3 w-full px-4 py-2.5 rounded-xl transition-all hover:bg-red-500/10 hover:text-red-400 group',
-            isMinimized && 'justify-center px-0'
-          )}
-        >
-          <LogOut className="w-5 h-5 shrink-0" />
-          {!isMinimized && <span className="text-sm font-medium">Logout</span>}
-        </button>
+      {/* Footer / Logout */}
+      <div className="p-4 mt-auto">
+        <div className={cn(
+          "bg-slate-800/40 rounded-xl p-2 border border-slate-800",
+          isMinimized ? "flex justify-center" : ""
+        )}>
+          <button
+            onClick={handleLogout}
+            className={cn(
+              "flex items-center gap-3 text-slate-400 hover:text-red-400 hover:bg-red-400/10 transition-all rounded-lg py-2",
+              isMinimized ? "px-2 justify-center" : "px-3 w-full"
+            )}
+          >
+            <LogOut className="w-5 h-5" />
+            {!isMinimized && <span className="text-sm font-medium">Keluar</span>}
+          </button>
+        </div>
       </div>
     </aside>
-  )
-}
-
-function NavItem({ label, href, icon: Icon, isMinimized, isActive }: any) {
-  return (
-    <Link
-      href={href}
-      className={cn(
-        'group relative flex items-center rounded-xl transition-all duration-200 py-2.5 mx-1',
-        isMinimized ? 'justify-center' : 'px-4 gap-3',
-        isActive 
-          ? 'bg-blue-600/15 text-blue-400 font-semibold' 
-          : 'text-slate-400 hover:bg-slate-800/60 hover:text-white'
-      )}
-    >
-      {isActive && (
-        <div className="absolute left-0 w-1 h-5 bg-blue-500 rounded-r-full" />
-      )}
-      <Icon className={cn('w-5 h-5 shrink-0 transition-colors', isActive ? 'text-blue-500' : 'group-hover:text-white')} />
-      
-      {!isMinimized && <span className="text-[14px] truncate">{label}</span>}
-      
-      {isMinimized && (
-        <div className="absolute left-14 invisible group-hover:visible opacity-0 group-hover:opacity-100 translate-x-[-10px] group-hover:translate-x-0 transition-all bg-slate-800 text-white text-[10px] py-1 px-2 rounded shadow-xl border border-slate-700 z-[100] whitespace-nowrap">
-          {label}
-        </div>
-      )}
-    </Link>
   )
 }
